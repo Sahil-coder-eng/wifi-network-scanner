@@ -1,0 +1,11 @@
+SSID,Signal,Security
+Himanshu... 4G,-73,WPA2-PSK
+Himanshu... 4G,-76,WPA2-PSK
+Laddu Gopal ,-76,WPA2-PSK
+NET+Roaming,-84,WPA2-PSK
+NET+Roaming,-74,WPA2-PSK
+Laddu Gopal 5G,-91,WPA2-PSK
+,-79,WPA2-PSK
+,-73,WPA2-PSK
+Himanshu.... 5G,-79,WPA2-PSK
+Airtel_gurd_0153,-78,WPA2-PSK
