@@ -3,9 +3,13 @@ import pywifi
 from pywifi import const
 import pandas as pd
 import time
+import os
+
+# ---------- Cloud Detection ----------
+def is_cloud():
+    return os.getenv("HOME") == "/home/app"
 
 # ---------- Wi-Fi SCAN Functions ----------
-
 def akm_type_to_string(akm_type):
     mapping = {
         const.AKM_TYPE_NONE: "Open",
@@ -27,7 +31,7 @@ def scan_wifi():
     networks = []
     for network in results:
         ssid = network.ssid
-        signal = network.signal
+        signal = f"{network.signal} dBm"
         security = akm_type_to_string(network.akm[0]) if network.akm else "Open"
         networks.append({"SSID": ssid, "Signal": signal, "Security": security})
 
@@ -37,23 +41,35 @@ def scan_wifi():
 
 st.set_page_config("Wi-Fi Scanner", layout="centered")
 st.title("📶 Wi-Fi Network Scanner")
-st.write("Click **Find Networks** to begin scanning nearby Wi-Fi.")
+st.write("Scan nearby Wi-Fi networks and view signal strength and security type.")
 
 # Store scan results in session
 if 'wifi_data' not in st.session_state:
     st.session_state.wifi_data = pd.DataFrame()
 
-# STEP 1: Show Find Networks button (only at first or after clear)
-if st.session_state.wifi_data.empty:
-    if st.button("🔍 Find Networks"):
-        try:
-            df = scan_wifi()
-            st.session_state.wifi_data = df
-            st.success("✅ Scan complete! Scroll down to view results.")
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
+# Mode selection
+mode = st.radio("Select Mode", ["Live Mode", "Demo Mode"])
 
-# STEP 2: Show results + Refresh + Download (only after scan)
+# Show warning if cloud
+if is_cloud():
+    st.warning("⚠️ Live scanning is disabled on Streamlit Cloud.\nYou're now in Demo Mode.")
+
+# STEP 1: Scan button
+if st.button("🔍 Find Networks"):
+    try:
+        if mode == "Demo Mode" or is_cloud():
+            df = pd.DataFrame([
+                {"SSID": "CU_WiFi", "Signal": "-45 dBm 🟩🟩🟩🟩🟩", "Security": "WPA2"},
+                {"SSID": "Public_WiFi", "Signal": "-80 dBm 🟥🟥", "Security": "Open ⭐"}
+            ])
+        else:
+            df = scan_wifi()
+        st.session_state.wifi_data = df
+        st.success("✅ Scan complete! Scroll down to view results.")
+    except Exception as e:
+        st.error(f"❌ Error: {e}")
+
+# STEP 2: Show results + Refresh + Download
 if not st.session_state.wifi_data.empty:
     st.subheader("📋 Available Wi-Fi Networks")
     st.dataframe(st.session_state.wifi_data)
@@ -63,7 +79,13 @@ if not st.session_state.wifi_data.empty:
     with col1:
         if st.button("🔁 Refresh"):
             try:
-                df = scan_wifi()
+                if mode == "Demo Mode" or is_cloud():
+                    df = pd.DataFrame([
+                        {"SSID": "CU_WiFi", "Signal": "-45 dBm 🟩🟩🟩🟩🟩", "Security": "WPA2"},
+                        {"SSID": "Public_WiFi", "Signal": "-80 dBm 🟥🟥", "Security": "Open ⭐"}
+                    ])
+                else:
+                    df = scan_wifi()
                 st.session_state.wifi_data = df
                 st.success("✅ Data refreshed!")
             except Exception as e:
@@ -77,8 +99,9 @@ if not st.session_state.wifi_data.empty:
             file_name="wifi_networks.csv",
             mime="text/csv"
         )
-# STEP 3: Clear results
-            # STEP 3: Clear results (appears below)
+
+# STEP 3: Clear button
+if not st.session_state.wifi_data.empty:
     if st.button("🗑️ Clear Results"):
         st.session_state.wifi_data = pd.DataFrame()
         st.info("Wi-Fi data cleared. You can scan again.")
